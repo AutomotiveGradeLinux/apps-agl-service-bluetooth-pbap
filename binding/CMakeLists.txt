@@ -23,6 +23,7 @@ PROJECT_TARGET_ADD(bluetooth-pbap-binding)
 	# Define project Targets
 	add_library(bluetooth-pbap-binding MODULE
 		bluetooth-pbap-binding.c
+		bluetooth-vcard-parser.c
 		gdbus/freedesktop_dbus_properties_interface.c
 		gdbus/obex_client1_interface.c
 		gdbus/obex_phonebookaccess1_interface.c

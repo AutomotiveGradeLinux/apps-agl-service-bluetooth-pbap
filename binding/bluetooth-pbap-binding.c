@@ -35,6 +35,8 @@
 #include "obex_phonebookaccess1_interface.h"
 #include "freedesktop_dbus_properties_interface.h"
 
+#include "bluetooth-pbap-common.h"
+
 static GDBusObjectManager *obj_manager;
 static OrgBluezObexClient1 *client;
 static OrgBluezObexSession1 *session;
@@ -152,10 +154,9 @@ static void on_interface_proxy_properties_changed(
 	}
 }
 
-static json_object *get_vcard_xfer(gchar *filename)
+static char *get_vcard_xfer(gchar *filename)
 {
 	FILE *fp;
-	json_object *vcard_str;
 	gchar *vcard_data;
 	size_t size, n;
 
@@ -170,12 +171,10 @@ static json_object *get_vcard_xfer(gchar *filename)
 		return NULL;
 	}
 
-	vcard_str = json_object_new_string(vcard_data);
-	free(vcard_data);
 	fclose(fp);
 	unlink(filename);
 
-	return vcard_str;
+	return vcard_data;
 }
 
 static void get_filename(gchar *filename)
@@ -224,8 +223,8 @@ static gchar *pull_vcard(const gchar *handle)
 
 static json_object *get_vcard(const gchar *handle)
 {
-	json_object *vcard_str = NULL, *vcard = NULL;
-	gchar *tpath, *filename;
+	json_object *vcard;
+	gchar *tpath, *filename, *vcard_str = NULL;
 
 	tpath = pull_vcard(handle);
 
@@ -240,10 +239,9 @@ static json_object *get_vcard(const gchar *handle)
 	g_free(filename);
 	g_mutex_unlock(&xfer_complete_mutex);
 
-	if (vcard_str) {
-		vcard = json_object_new_object();
-		json_object_object_add(vcard, "vcard", vcard_str);
-	}
+	vcard = json_object_new_object();
+	json_object_object_add(vcard, "vcards", parse_vcards(vcard_str));
+	g_free(vcard_str);
 
 	return vcard;
 }
@@ -276,8 +274,8 @@ static gchar *pull_vcards(int max_entries)
 
 static json_object *get_vcards(int max_entries)
 {
-	json_object *vcards_str, *vcards;
-	gchar *tpath, *filename;
+	json_object *vcards;
+	gchar *tpath, *filename, *vcards_str = NULL;
 
 	tpath = pull_vcards(max_entries);
 	g_mutex_lock(&xfer_complete_mutex);
@@ -290,7 +288,8 @@ static json_object *get_vcards(int max_entries)
 	g_mutex_unlock(&xfer_complete_mutex);
 
 	vcards = json_object_new_object();
-	json_object_object_add(vcards, "vcards", vcards_str);
+	json_object_object_add(vcards, "vcards", parse_vcards(vcards_str));
+	g_free(vcards_str);
 
 	return vcards;
 }

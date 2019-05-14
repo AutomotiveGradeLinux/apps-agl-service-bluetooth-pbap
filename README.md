@@ -21,9 +21,24 @@ Bluetooth PBAP service reports respective vCard phonebook data from BlueZ via co
 Returns all vCards that are accessible from respective connected device in concatenated output:
 
 <pre>
- "response": {
-     "vcards": "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Art McGee\r\nN:Art\r\nTEL: +13305551212\r\nUID:27e\r\nEND:VCARD\r\n"
- }
+
+"response": {
+    "vcards": [
+     {
+        "fn": "Art McGee",
+        "photo": {
+            "mimetype": "image/jpeg",
+            "data": 'BASE64 IMAGE BLOB HERE'
+        },
+        "telephone": [
+          {
+            "CELL": "+13305551212"
+          }
+        ]
+     },
+     ...
+  ]
+}
 </pre>
 
 ### search Verb
@@ -31,14 +46,14 @@ Returns all vCards that are accessible from respective connected device in conca
 Example of a request for vCard search using **number** parameter (i.e. *{"number":"+15035551212"}*) results:
 
 <pre>
- "response": {
-     "results": [
-           {
-                "handle": "27e.vcf",
-                "name": "Art McGee"
-           }
-     ]
- }                                       },
+"response": {
+    "results": [
+       {
+          "handle": "27e.vcf",
+          "name": "Art McGee"
+       }
+    ]
+}                                       },
 </pre>
 
 ### entry Verb
@@ -55,11 +70,7 @@ Client must pass one of the following values to the **list** parameter in reques
 
 Also there is a **handle** parameter that must be in form of vCard path (e.g. 27e.vcf).
 
-<pre>
- "response": {
-     "vcard":"BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Art McGee\r\nN:;Art\r\nTEL;TYPE=CELL:+13305551212\r\nUID:27e\r\nEND:VCARD\r\n"
- }
-</pre>
+Response is the same as noted in the **contacts** verb
 
 ### history Verb
 
@@ -75,9 +86,28 @@ Client must pass one of the following values to the list parameter in request:
 Sample request for a combined list (i.e. *{"list":"cch"}*) and its respective response:
 
 <pre>
- "response": {
-     "vcards":"BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Art \r\nN:\r\nTEL:3305551212\r\nX-IRMC-CALL-DATETIME;DIALED:20190103T202524\r\nEND:VCARD\r\nBEGIN:VCARD\r\nVERSION:3.0\r\nFN:Art McGee\r\nN:;Art\r\nTEL;TYPE=CELL:+15035551212\r\nUID:27e\r\nX-IRMC-CALL-DATETIME;RECEIVED:20181207T065311\r\nEND:VCARD\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n"
- }
+"response": {
+    "vcards": [
+      {
+        "fn": "Art McGee"
+        "type": "DIALED",
+        "timestamp": "20190509T193422",
+        "telephone": "+13305551212"
+      },
+      {
+        "fn": "UNKNOWN CALLER",
+        "type": "MISSED",
+        "timestamp": "20190426T014109",
+        "telephone": "+15035551212"
+      },
+      {
+        "fn": "Satoshi Nakamoto"
+        "type": "RECEIVED",
+        "timestamp": "20190421T090123",
+        "telephone": "+13605551212"
+      }
+   ]
+}
 </pre>
 
 ## Events
