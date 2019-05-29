@@ -51,12 +51,12 @@ static const gchar *VC_PREFIXES[VC_FIELD_COUNT] = {
 
 static void add_fn(json_object *resp, gchar *msg)
 {
-	gchar *name = msg + vc_len(VC_FORMATTED_NAME) + 1;
+	gchar *name = strstr(msg, ":");
 
-	if (!name)
-		name = "UNKNOWN";
+	if (!name || !strlen(name + 1))
+		return;
 
-	json_object_object_add(resp, "fn", json_object_new_string(name));
+	json_object_object_add(resp, "fn", json_object_new_string(++name));
 }
 
 static void add_phone(json_object *array, gchar *msg)
