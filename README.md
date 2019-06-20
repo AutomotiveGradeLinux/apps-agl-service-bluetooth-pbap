@@ -6,19 +6,30 @@ Bluetooth PBAP service reports respective vCard phonebook data from BlueZ via co
 
 ## Verbs
 
-| Name        | Description                               | JSON Response                                      |
-|-------------|-------------------------------------------|----------------------------------------------------|
-| subscribe   | subscribe to Bluetooth PBAP events        | *Request:* {"value": "status"}                     |
-| unsubscribe | unsubscribe to Bluetooth PBAP events      | *Request:* {"value": "status"}                     |
-| contacts    | return all contacts from connected device | see **contacts verb section**                      |
-| entry       | return vCard data from handle             | see **entry verb section**                         |
-| history     | return call history list                  | see **history verb section**                       |
-| search      | search for respective vCard handle        | see **search verb section**                        |
-| status      | current device connection status          | same response as noted in **status event section** |
+| Name        | Description                                | JSON Response                                      |
+|-------------|--------------------------------------------|----------------------------------------------------|
+| subscribe   | subscribe to Bluetooth PBAP events         | *Request:* {"value": "status"}                     |
+| unsubscribe | unsubscribe to Bluetooth PBAP events       | *Request:* {"value": "status"}                     |
+| import      | request contact data from connected device | see **import verb section**                        |
+| contacts    | return all contacts from connected device  | see **contacts verb section**                      |
+| entry       | return vCard data from handle              | see **entry verb section**                         |
+| history     | return call history list                   | see **history verb section**                       |
+| search      | search for respective vCard handle         | see **search verb section**                        |
+| status      | current device connection status           | same response as noted in **status event section** |
+
+
+### import Verb
+
+Requests phonebook from connected device via OBEX transfers, caches the results to a database, and
+returns a response as documented in the **contacts verb section**
+
 
 ### contacts Verb
 
-Returns all vCards that are accessible from respective connected device in concatenated output:
+Returns all vCards that are accessible from respective connected device in concatenated output
+from the cached database.
+
+NOTE: This doesn't request refreshed data from device
 
 <pre>
 

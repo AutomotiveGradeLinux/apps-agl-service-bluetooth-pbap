@@ -356,25 +356,54 @@ void contacts(afb_req_t request)
 {
 	struct json_object *jresp;
 	const char *cached = NULL;
-	int max_entries = -1;
 
 	if (!connected) {
 		afb_req_fail(request, "not connected", NULL);
 		return;
 	}
 
-	if (!parse_max_entries_parameter(request, &max_entries))
-		return;
-
-	if (max_entries == -1 && !read_cached_value(connected_address, &cached)) {
+	if (!read_cached_value(connected_address, &cached)) {
 		jresp = json_tokener_parse(cached);
 	} else {
-		org_bluez_obex_phonebook_access1_call_select_sync(
-			phonebook, INTERNAL, CONTACTS, NULL, NULL);
-		jresp = get_vcards(max_entries);
+		afb_req_fail(request, "no imported contacts", NULL);
 	}
 
 	afb_req_success(request, jresp, "contacts");
+}
+
+void import(afb_req_t request)
+{
+	struct json_object *jresp;
+	int max_entries = -1;
+	gchar *address;
+
+	g_mutex_lock(&connected_mutex);
+	if (!connected) {
+		afb_req_fail(request, "not connected", NULL);
+		g_mutex_unlock(&connected_mutex);
+		return;
+	}
+
+	address = g_strdup(connected_address);
+	g_mutex_unlock(&connected_mutex);
+
+	if (!parse_max_entries_parameter(request, &max_entries))
+		return;
+
+	if (!org_bluez_obex_phonebook_access1_call_select_sync(
+				phonebook, INTERNAL, CONTACTS, NULL, NULL)) {
+		afb_req_fail(request, "cannot import contacts", NULL);
+		goto out_free;
+	}
+
+	jresp = get_vcards(max_entries);
+	update_or_insert(address,
+		json_object_to_json_string_ext(jresp, JSON_C_TO_STRING_PLAIN));
+
+	afb_req_success(request, jresp, "contacts");
+
+out_free:
+	g_free(address);
 }
 
 void entry(afb_req_t request)
@@ -651,24 +680,22 @@ static gboolean is_pbap_dev_and_init(struct json_object *dev)
 			g_mutex_lock(&connected_mutex);
 			if (connected_address)
 				g_free(connected_address);
-			connected_address = g_strdup(address);
 
 			connected = TRUE;
 			json_object_object_add(jresp, "connected",
 				json_object_new_boolean(connected));
+
+			json_object_object_get_ex(dev, "device", &val1);
+			connected_address = g_strdup(json_object_get_string(val1));
+
+			json_object_object_add(jresp, "device",
+				json_object_new_string(connected_address));
+
 			g_mutex_unlock(&connected_mutex);
 
 			afb_event_push(status_event, jresp);
 
-			json_object_object_get_ex(dev, "device", &val1);
-			AFB_NOTICE("PBAP device connected: %s", json_object_get_string(val1));
-
-			/* probably should be made async */
-			org_bluez_obex_phonebook_access1_call_select_sync(
-				phonebook, INTERNAL, CONTACTS, NULL, NULL);
-			update_or_insert(address,
-				json_object_to_json_string_ext(get_vcards(-1),
-				JSON_C_TO_STRING_PLAIN));
+			AFB_NOTICE("PBAP device connected: %s", connected_address);
 
 			return TRUE;
 		}
@@ -714,6 +741,7 @@ static void init_bt(afb_api_t api)
 
 static const afb_verb_t binding_verbs[] = {
 	{ .verb = "contacts",	.callback = contacts,		.info = "List contacts" },
+	{ .verb = "import",	.callback = import,		.info = "Import contacts" },
 	{ .verb = "entry",	.callback = entry,		.info = "List call entry" },
 	{ .verb = "history",	.callback = history,		.info = "List call history" },
 	{ .verb = "search",	.callback = search,		.info = "Search for entry" },
@@ -792,6 +820,7 @@ static void process_connection_event(afb_api_t api, struct json_object *object)
 	g_mutex_lock(&connected_mutex);
 	connected = FALSE;
 	json_object_object_add(jresp, "connected", json_object_new_boolean(connected));
+	json_object_object_add(jresp, "device", json_object_new_string(device));
 	g_mutex_unlock(&connected_mutex);
 
 	afb_event_push(status_event, jresp);
