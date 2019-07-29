@@ -195,7 +195,7 @@ static void get_filename(gchar *filename)
 
 	strftime(buffer, 26, "%Y%m%d%H%M%S", tm_info);
 
-	sprintf(filename, "/tmp/vcard-%s%03ld.dat", buffer, ms);
+	sprintf(filename, "/run/user/%d/usrshr/vcard-%s%03ld.dat", getuid(), buffer, ms);
 }
 
 static gchar *pull_vcard(const gchar *handle)
