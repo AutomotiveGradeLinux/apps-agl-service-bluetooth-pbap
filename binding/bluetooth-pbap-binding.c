@@ -161,6 +161,9 @@ static char *get_vcard_xfer(gchar *filename)
 	size_t size, n;
 
 	fp = fopen(filename, "ro");
+	if (!fp)
+		return NULL;
+
 	fseek(fp, 0L, SEEK_END);
 	size = ftell(fp);
 	vcard_data = calloc(1, size);
@@ -274,7 +277,7 @@ static gchar *pull_vcards(int max_entries)
 
 static json_object *get_vcards(int max_entries)
 {
-	json_object *vcards;
+	json_object *vcards = NULL;
 	gchar *tpath, *filename, *vcards_str = NULL;
 
 	tpath = pull_vcards(max_entries);
@@ -287,10 +290,11 @@ static json_object *get_vcards(int max_entries)
 	g_hash_table_remove(xfer_complete, tpath);
 	g_mutex_unlock(&xfer_complete_mutex);
 
-	vcards = json_object_new_object();
-	json_object_object_add(vcards, "vcards", parse_vcards(vcards_str));
-	g_free(vcards_str);
-
+	if (vcards_str) {
+		vcards = json_object_new_object();
+		json_object_object_add(vcards, "vcards", parse_vcards(vcards_str));
+		g_free(vcards_str);
+	}
 	return vcards;
 }
 
