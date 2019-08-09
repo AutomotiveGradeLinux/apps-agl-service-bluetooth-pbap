@@ -21,7 +21,7 @@
 PROJECT_TARGET_ADD(bluetooth-pbap-binding)
 
 	# Define project Targets
-	add_library(bluetooth-pbap-binding MODULE
+	add_library(${TARGET_NAME} MODULE
 		bluetooth-pbap-binding.c
 		bluetooth-vcard-parser.c
 		gdbus/freedesktop_dbus_properties_interface.c
@@ -39,6 +39,6 @@ PROJECT_TARGET_ADD(bluetooth-pbap-binding)
 	)
 
 	# Library dependencies (include updates automatically)
-	TARGET_LINK_LIBRARIES(${TARGET_NAME} ${link_libraries})
+	TARGET_LINK_LIBRARIES(${TARGET_NAME} ${link_libraries} m)
 
 	include_directories(gdbus)
