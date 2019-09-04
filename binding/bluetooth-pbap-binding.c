@@ -170,7 +170,7 @@ static char *get_vcard_xfer(gchar *filename)
 	fseek(fp, 0L, SEEK_SET);
 	n = fread(vcard_data, 1, size, fp);
 	if (n != size) {
-		AFB_ERROR("Read only %ld/%ld bytes from %s", n, size, filename);
+		AFB_ERROR("Read only %zu/%zu bytes from %s", n, size, filename);
 		return NULL;
 	}
 
