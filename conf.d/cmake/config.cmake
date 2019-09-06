@@ -21,6 +21,7 @@
 set(PROJECT_NAME agl-service-bluetooth-pbap)
 set(PROJECT_PRETTY_NAME "AFM binding for BT PBAP")
 set(PROJECT_DESCRIPTION "Binding for Bluetooth Phonebook Access Profile")
+set(PROJECT_URL "https://gerrit.automotivelinux.org/gerrit/admin/repos/apps/agl-service-bluetooth-pbap")
 set(PROJECT_VERSION "1.0")
 set(PROJECT_ICON "icon.png")
 set(PROJECT_AUTHOR "Last Name, First Name")
