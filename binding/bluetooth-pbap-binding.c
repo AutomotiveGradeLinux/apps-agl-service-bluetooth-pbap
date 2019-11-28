@@ -370,6 +370,7 @@ void contacts(afb_req_t request)
 		jresp = json_tokener_parse(cached);
 	} else {
 		afb_req_fail(request, "no imported contacts", NULL);
+		return;
 	}
 
 	afb_req_success(request, jresp, "contacts");
