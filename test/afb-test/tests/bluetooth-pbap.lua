@@ -20,6 +20,8 @@
 
 --]]
 
+
+_AFT.testVerbStatusSuccess('testContactsSuccess','bluetooth-pbap','import', {})
 _AFT.testVerbStatusSuccess('testContactsSuccess','bluetooth-pbap','contacts', {})
 _AFT.testVerbStatusSuccess('testIncomingCallsEntrySuccess','bluetooth-pbap','entry', {list="ich",handle="1.vcf"})
 _AFT.testVerbStatusSuccess('testOutgoingCallsEntrySuccess','bluetooth-pbap','entry', {list="och",handle="1.vcf"})
