@@ -65,52 +65,48 @@ static afb_event_t status_event;
 #define MISSED		"mch"
 
 
-static int update_or_insert(const char *key, const char *value)
+static int update_or_insert(afb_api_t api, const char *key, const char *value)
 {
 	json_object *query = json_object_new_object();
 	int ret;
 
+	if (!key || !value)
+		return -EINVAL;
+
 	json_object_object_add(query, "key", json_object_new_string(key));
 	json_object_object_add(query, "value", json_object_new_string(value));
-	json_object_get(query);
 
-	ret = afb_service_call_sync("persistence", "update", query, NULL, NULL, NULL);
+	ret = afb_api_call_sync(api, "persistence", "update", query, NULL, NULL, NULL);
 	if (!ret) {
-		AFB_DEBUG("Updating persistence value '%s'", key);
-		json_object_put(query);
+		AFB_DEBUG("Updated persistence key '%s'", key);
 		return 0;
 	}
 
-	ret = afb_service_call_sync("persistence", "write", query, NULL, NULL, NULL);
-	if (!ret) {
-		AFB_DEBUG("Create persistence value '%s'", key);
-		return 0;
-	}
-
+	ret = afb_api_call_sync(api, "persistence", "insert", query, NULL, NULL, NULL);
 	return ret;
 }
 
-static int read_cached_value(const char *key, const char **data)
+static int read_cached_value(afb_api_t api, const char *key, const char **data)
 {
-	json_object *response, *query;
+	json_object *response, *query, *val;
 	int ret;
+
+	if (!key || !data)
+		return -EINVAL;
 
 	query = json_object_new_object();
 	json_object_object_add(query, "key", json_object_new_string(key));
 
-	ret = afb_service_call_sync("persistence", "read", query, &response, NULL, NULL);
-	if (!ret) {
-		json_object *val = NULL;
+	ret = afb_api_call_sync(api, "persistence", "read", query, &response, NULL, NULL);
+	if (ret < 0)
+		goto out;
 
-		json_object_object_get_ex(response, "value", &val);
-		if (!val)
-			return -EINVAL;
+	if (json_object_object_get_ex(response, "value", &val))
+		*data = val? g_strdup(json_object_get_string(val)) : NULL;
 
-		*data = g_strdup(json_object_get_string(val));
-	}
+	json_object_put(response);
 
-	json_object_get(response);
-
+out:
 	return ret;
 }
 
@@ -360,20 +356,28 @@ void contacts(afb_req_t request)
 {
 	struct json_object *jresp;
 	const char *cached = NULL;
+	gchar *address;
+	afb_api_t api = afb_req_get_api(request);
 
+	g_mutex_lock(&connected_mutex);
 	if (!connected) {
 		afb_req_fail(request, "not connected", NULL);
+		g_mutex_unlock(&connected_mutex);
 		return;
 	}
 
-	if (!read_cached_value(connected_address, &cached)) {
-		jresp = json_tokener_parse(cached);
-	} else {
+	address = g_strdup(connected_address);
+	g_mutex_unlock(&connected_mutex);
+
+	if (read_cached_value(api, address, &cached)) {
 		afb_req_fail(request, "no imported contacts", NULL);
-		return;
-	}
+		goto out;
+	} else
+		jresp = json_tokener_parse(cached);
 
 	afb_req_success(request, jresp, "contacts");
+out:
+	g_free(address);
 }
 
 void import(afb_req_t request)
@@ -381,6 +385,7 @@ void import(afb_req_t request)
 	struct json_object *jresp;
 	int max_entries = -1;
 	gchar *address;
+	afb_api_t api = afb_req_get_api(request);
 
 	g_mutex_lock(&connected_mutex);
 	if (!connected) {
@@ -393,7 +398,7 @@ void import(afb_req_t request)
 	g_mutex_unlock(&connected_mutex);
 
 	if (!parse_max_entries_parameter(request, &max_entries))
-		return;
+		goto out_free;
 
 	if (!org_bluez_obex_phonebook_access1_call_select_sync(
 				phonebook, INTERNAL, CONTACTS, NULL, NULL)) {
@@ -402,7 +407,7 @@ void import(afb_req_t request)
 	}
 
 	jresp = get_vcards(max_entries);
-	update_or_insert(address,
+	update_or_insert(api, address,
 		json_object_to_json_string_ext(jresp, JSON_C_TO_STRING_PLAIN));
 
 	afb_req_success(request, jresp, "contacts");
