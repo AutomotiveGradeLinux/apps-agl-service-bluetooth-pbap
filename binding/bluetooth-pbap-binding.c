@@ -473,8 +473,15 @@ void history(afb_req_t request)
 	if (!parse_max_entries_parameter(request, &max_entries))
 		return;
 
-	org_bluez_obex_phonebook_access1_call_select_sync(
-			phonebook, INTERNAL, list, NULL, NULL);
+	if (!phonebook)
+		return;
+
+	if (!org_bluez_obex_phonebook_access1_call_select_sync(
+			phonebook, INTERNAL, COMBINED, NULL, NULL)) {
+		afb_req_fail(request, "cannot import call history", NULL);
+		return;
+	}
+
 	jresp = get_vcards(max_entries);
 
 	afb_req_success(request, jresp, "call history");
